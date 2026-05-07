@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GeoQuiz</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(180deg,#06142e,#021029);
+color:white;
+text-align:center;
+padding:40px;
+}
+
+.container{
+max-width:750px;
+margin:auto;
+background:#0d2a5c;
+padding:30px;
+border-radius:15px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+h1{
+color:#7fb3ff;
+}
+
+button{
+display:block;
+width:100%;
+margin:10px 0;
+padding:15px;
+border:none;
+border-radius:8px;
+font-size:16px;
+cursor:pointer;
+background:#1f4fa3;
+color:white;
+}
+
+button:hover{
+background:#3b73d1;
+}
+
+.hidden{
+display:none;
+}
+
+.timer{
+font-size:22px;
+margin-bottom:10px;
+color:#ffd166;
+}
+
+.score{
+font-size:20px;
+margin-bottom:10px;
+}
+
+input{
+padding:12px;
+border-radius:6px;
+border:none;
+width:80%;
+font-size:16px;
+}
+
+.leaderboard li{
+text-align:left;
+margin:5px 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🌍 GeoQuiz</h1>
+
+<!-- Nickname Screen -->
+
+<div id="startScreen">
+
+<h2>Enter Nickname</h2>
+
+<input id="nickname" placeholder="Your nickname">
+
+<button onclick="startQuiz()">Start Quiz</button>
+
+</div>
+
+<!-- Quiz Screen -->
+
+<div id="quizScreen" class="hidden">
+
+<div class="timer">Time: <span id="time">10</span></div>
+
+<div class="score">
+Score: <span id="score">0</span>
+</div>
+
+<h2 id="question"></h2>
+
+<div id="answers"></div>
+
+</div>
+
+<!-- End Screen -->
+
+<div id="endScreen" class="hidden">
+
+<h2>Quiz Finished!</h2>
+
+<p>Your Score: <span id="finalScore"></span>/10</p>
+
+<h3>🏆 Leaderboard</h3>
+
+<ol id="leaderboard" class="leaderboard"></ol>
+
+<form action="https://formspree.io/f/mqednlgq" method="POST">
+
+<input type="hidden" name="nickname" id="formNickname">
+<input type="hidden" name="score" id="formScore">
+<input type="hidden" name="percentage" id="formPercentage">
+
+<button type="submit">Submit Score</button>
+
+</form>
+
+</div>
+
+</div>
+
+<script>
+
+const questions=[
+
+{question:"Capital of Canada?",answers:["Toronto","Ottawa","Vancouver","Montreal"],correct:1},
+
+{question:"Longest river in the world?",answers:["Amazon","Nile","Yangtze","Mississippi"],correct:1},
+
+{question:"Everest mountain range?",answers:["Andes","Rockies","Himalayas","Alps"],correct:2},
+
+{question:"Country with most islands?",answers:["Sweden","Indonesia","Philippines","Japan"],correct:0},
+
+{question:"Largest hot desert?",answers:["Arabian","Gobi","Sahara","Kalahari"],correct:2},
+
+{question:"Continent with most countries?",answers:["Asia","Africa","Europe","South America"],correct:1},
+
+{question:"Capital of Australia?",answers:["Sydney","Melbourne","Canberra","Perth"],correct:2},
+
+{question:"Largest ocean?",answers:["Atlantic","Pacific","Indian","Arctic"],correct:1},
+
+{question:"Country with most borders?",answers:["Russia","China","Brazil","Germany"],correct:1},
+
+{question:"Smallest country?",answers:["Monaco","Malta","Vatican City","San Marino"],correct:2}
+
+]
+
+let currentQuestion=0
+let score=0
+let timer
+let timeLeft=10
+let nickname=""
+
+function startQuiz(){
+
+nickname=document.getElementById("nickname").value
+
+if(nickname===""){
+alert("Enter a nickname")
+return
+}
+
+document.getElementById("startScreen").classList.add("hidden")
+document.getElementById("quizScreen").classList.remove("hidden")
+
+loadQuestion()
+
+}
+
+function loadQuestion(){
+
+clearInterval(timer)
+
+timeLeft=10
+document.getElementById("time").textContent=timeLeft
+
+timer=setInterval(updateTimer,1000)
+
+let q=questions[currentQuestion]
+
+document.getElementById("question").textContent=q.question
+
+let answersDiv=document.getElementById("answers")
+
+answersDiv.innerHTML=""
+
+q.answers.forEach((a,i)=>{
+
+let btn=document.createElement("button")
+
+btn.textContent=a
+
+btn.onclick=()=>selectAnswer(i)
+
+answersDiv.appendChild(btn)
+
+})
+
+}
+
+function updateTimer(){
+
+timeLeft--
+
+document.getElementById("time").textContent=timeLeft
+
+if(timeLeft<=0){
+
+nextQuestion()
+
+}
+
+}
+
+function selectAnswer(index){
+
+clearInterval(timer)
+
+if(index===questions[currentQuestion].correct){
+
+score++
+
+document.getElementById("score").textContent=score
+
+}
+
+nextQuestion()
+
+}
+
+function nextQuestion(){
+
+currentQuestion++
+
+if(currentQuestion<questions.length){
+
+loadQuestion()
+
+}else{
+
+endQuiz()
+
+}
+
+}
+
+function endQuiz(){
+
+clearInterval(timer)
+
+document.getElementById("quizScreen").classList.add("hidden")
+document.getElementById("endScreen").classList.remove("hidden")
+
+let percentage = Math.round((score / questions.length) * 100)
+
+document.getElementById("finalScore").textContent=score
+
+document.getElementById("formNickname").value=nickname
+document.getElementById("formScore").value=score
+document.getElementById("formPercentage").value = percentage
+
+saveLeaderboard()
+
+displayLeaderboard()
+
+}
+
+function saveLeaderboard(){
+
+let board=JSON.parse(localStorage.getItem("leaderboard"))||[]
+
+board.push({name:nickname,score:score})
+
+board.sort((a,b)=>b.score-a.score)
+
+board=board.slice(0,10)
+
+localStorage.setItem("leaderboard",JSON.stringify(board))
+
+}
+
+function displayLeaderboard(){
+
+let board=JSON.parse(localStorage.getItem("leaderboard"))||[]
+
+let list=document.getElementById("leaderboard")
+
+list.innerHTML=""
+
+board.forEach(player=>{
+
+let li=document.createElement("li")
+
+li.textContent=player.name+" - "+player.score
+
+list.appendChild(li)
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
